@@ -1,12 +1,13 @@
 import os
 dirlist = os.listdir()
-imHeight = 1080
-imWidth = 1920
+#imHeight = 1080
+#imWidth = 1920
 shosu = 3
-#filenumber = 1
-#filename = '{0:06d}'.format(filenumber)
-#nf = open(filename+'.txt','w')
 for i in [m for m in dirlist if m.startswith('MOT')]:
+    with open(i + '/seqinfo.ini') as info:
+        imWidth = int(info.readlines()[5].rstrip().split('=')[1])
+    with open(i + '/seqinfo.ini') as info:
+        imHeight = int(info.readlines()[6].rstrip().split('=')[1])
     with open(i + '/gt/gt.txt','r') as f:
         if not(os.path.exists(i+"/conv")):
             os.mkdir(i +"/conv")
