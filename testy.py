@@ -29,17 +29,20 @@ def main():
     
     args = sys.argv
     dirlist = os.listdir()
-    ys = cl.OrderedDict()
+    train_ys = cl.OrderedDict()
+    test_ys  = cl.OrderedDict()
     #for i in [m for m in dirlist if m.startswith('MOT')]:
-    #for fileDir in ["MOT17-02-FRCNN"]:
     fileDir = args[1]
+    percentage_test = 30 # testデータの割合
     with open(fileDir + '/seqinfo.ini') as info:
         seqLen = int(info.readlines()[4].rstrip().split('=')[1])
         print("seqLength:{}".format(seqLen))
         #rects = [0 for j in range(seqLen)]
-        f = open(fileDir + '/gt/gt.txt')
+        f = open(fileDir + '/det/det.txt')
         lines = f.readlines()
         f.close()
+        counter = 1
+        index_test = round(100 / percentage_test) 
 
         for i in range(1, seqLen+1):
             rects = []
@@ -50,33 +53,72 @@ def main():
                 #element = ror.rstrip().split(',')
                 if element[0] == str(i):
                 # fname.append(string(filename))
-                    x1 = (int(element[2]))
-                    y1 = (int(element[3]))
-                    x2 = int(element[2]) + int(element[4])
-                    y2 = int(element[3]) + int(element[5])
-                    rect = {"x1": x1, "y1": y1, "x2": x2, "y2": y2}
+                    rect = cl.OrderedDict()
+                    rect["x1"] = int(float(element[2]))
+                    rect["x2"] = int(float(element[2]) + float(element[4]))
+                    rect["y1"] = int(float(element[3]))
+                    rect["y2"] = int(float(element[3]) + float(element[5]))
+                    #rect["x1"] = '{0:.1f}'.format(float(element[2]))
+                    #rect["x2"] = '{0:.1f}'.format(float(element[2]) + float(element[4]))
+                    #rect["y1"] = '{0:.1f}'.format(float(element[3]))
+                    #rect["y2"] = '{0:.1f}'.format(float(element[3]) + float(element[5]))
+                    #x1 = int(float(element[2]))
+                    #y1 = int(float(element[3]))
+                    #x2 = int(float(element[2])) + int(float(element[4]))
+                    #y2 = int(float(element[3])) + int(float(element[5]))
+                    #rect = cl.OrderedDict({"x1": x1, "y1": y1, "x2": x2, "y2": y2})
                     rects.append(rect)
     
             filename = '{0:06d}'.format(i) + '.jpg'
             print(filename)
-            data = cl.OrderedDict()
-            data["image_path"] = '~/ml/MOT17/train/'+fileDir+'/'+filename
-            #print(rects)
-            data["rect"] = rects
-            ys[i] = data
+            train_data = cl.OrderedDict()
+            test_data = cl.OrderedDict()
+            if counter == index_test:
+                counter = 1
+                test_data["image_path"] = 'test/'+fileDir+'/img1/'+filename
+                test_data["rects"] = rects
+            else:
+                train_data["image_path"] = 'test/'+fileDir+'/img1/'+filename
+                train_data["rects"] = rects
+                counter = counter + 1
+            train_ys[i] = train_data
+            test_ys[i] = test_data
         f.close()
-    fw = open(fileDir+'.json','w')
-    json.dump(ys,fw,indent=4)
+    fw = open(fileDir+'_train.json','w')
+    json.dump(train_ys,fw,indent=2)
     fw.close()
-    fw = open(fileDir+'.json')
-    fo = open(fileDir+'_fin.json','w')
+    fw = open(fileDir+'_test.json','w')
+    json.dump(test_ys,fw,indent=2)
+    fw.close()
+    num_lines_train = len(open(fileDir + '_train.json').readlines())
+    num_lines_test = len(open(fileDir + '_test.json').readlines())
+    fw_train = open(fileDir+'_train.json')
+    fo_train = open('train/' + fileDir+'_train_fin.json','w')
+    line_counter = 0
+    for line in fw_train:
+        line_counter += 1
+        if line_counter == 1 or line_counter == num_lines_train:
+            continue
+        line = re.sub(r'"[0-9]+": ',"",line)
+        line = re.sub(r'{}.?',"",line)
+        line = re.sub(r'\s+\n',"",line)
+        fo_train.write(line)
+    fw_train.close()
+    fo_train.close()
 
-    for conv_line in fw:
-        conv_line = re.sub(r'"[0-9]+": ',"",conv_line)
-        fo.write(conv_line)
-    fw.close()
-    fo.close()
-    
+    fw_test = open(fileDir+'_test.json')
+    fo_test = open('test/' + fileDir+'_test_fin.json','w')
+    line_counter = 0
+    for line in fw_test:
+        line_counter += 1
+        if line_counter == 1 or line_counter == num_lines_test:
+            continue
+        line = re.sub(r'"[0-9]+": ',"",line)
+        line = re.sub(r'{}.?',"",line)
+        line = re.sub(r'\s+\n',"",line)
+        fo_test.write(line)
+    fw_test.close()
+    fo_test.close()
 
     print("finish!!")
 
